@@ -38,7 +38,7 @@ app.post("/auth/register", async(req, res) => {
     const user = new User({
         name,
         email,
-        password: passwordHash
+        password: passwordHash,
     });
 
     try {
@@ -49,6 +49,46 @@ app.post("/auth/register", async(req, res) => {
         res.status(500).json({message: "Erro no servidor. Tente novamente mais tarde!"});
     }
 });
+
+app.post("/auth/login", async (req, res) => {
+    const {email, password} = req.body;
+
+    if(!email || !password) {
+        return res.status(422).json({message: "Preencha todos os campos."});
+    }
+
+    const user = await User.findOne({email: email});
+
+    if(!user) {
+        return res.status(404).json({message: "Usuário não encontrado."});
+    }
+
+    console.log(user);
+    const userPassword = user.password;
+    const checkPassword = await bcrypt.compare(password, userPassword);
+    console.log(checkPassword);
+    console.log(password);
+    console.log(userPassword);
+    console.log(typeof(password));
+    console.log(typeof(userPassword));
+    console.log(password === userPassword);
+
+    if(!checkPassword) {
+        return res.status(422).json({message: "Senha inválida!"});
+    }
+
+    try {
+        const secret = process.env.SECRET;
+        const token = jwt.sign({
+            id: user._id
+        }, secret);
+
+        res.status(200).json({message: "Autenticação realizada com sucesso!", token: token});
+    }
+    catch (error) {
+        res.status(500).json({message: "Erro no servidor. Tente novamente mais tarde!"});
+    }
+})
 
 const DB_USER = process.env.DB_USER;
 const DB_PASSWORD = process.env.DB_PASSWORD;
